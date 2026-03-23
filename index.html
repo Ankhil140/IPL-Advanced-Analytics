@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPL Stats Analyser & Predictor</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f7f9fc; margin: 0; padding: 0; }
+        .hero { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 40px 20px; text-align: center; }
+        .container { max-width: 800px; margin: 40px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        h1 { margin-top: 0; }
+        h2 { color: #1e3c72; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fff; transition: border 0.3s; }
+        select:focus { border-color: #2a5298; outline: none; }
+        .predict-btn { background-color: #2a5298; color: white; border: none; padding: 16px 30px; font-size: 18px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: background 0.3s; margin-top: 10px;}
+        .predict-btn:hover { background-color: #1e3c72; }
+        .predict-btn:disabled { background-color: #9cb2d6; cursor: not-allowed; }
+        .result { margin-top: 30px; padding: 25px; text-align: center; border-radius: 8px; display: none; }
+        .result.success { display: block; background-color: #e8f5e9; color: #1b5e20; border: 2px solid #c8e6c9; }
+        .live-section { margin-top: 50px; padding-top: 20px; }
+        .live-card { background: #fff8e1; padding: 18px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #ffb300; transition: transform 0.2s; }
+        .live-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .live-card h4 { margin: 0 0 8px 0; color: #d84315; font-size: 18px; }
+        .reload-btn { background-color: #e53935; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; float: right; }
+        .reload-btn:hover { background-color: #c62828; }
+        .cf { clear: both; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>🏏 IPL Stats Analyser & Predictor</h1>
+        <p>Vercel-native Architecture powered by Machine Learning and Big Data</p>
+    </div>
+    
+    <div class="container">
+        <h2>🔮 Match Predictor</h2>
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="team1">Team 1 (Batting First)</label>
+                <select id="team1" onchange="updateTossOptions()"></select>
+            </div>
+            <div class="form-group">
+                <label for="team2">Team 2 (Bowling First)</label>
+                <select id="team2" onchange="updateTossOptions()"></select>
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="toss_winner">Toss Winner</label>
+                <select id="toss_winner"></select>
+            </div>
+            <div class="form-group">
+                <label for="toss_decision">Toss Decision</label>
+                <select id="toss_decision">
+                    <option value="bat">Bat</option>
+                    <option value="field">Field</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="venue">Match Venue</label>
+            <select id="venue"></select>
+        </div>
+        
+        <button class="predict-btn" onclick="predictMatch()">Predict Match Outcome 🎯</button>
+        
+        <div id="result" class="result">
+            <h2 id="predictedWinner" style="margin:0 0 10px 0; color:#1b5e20;"></h2>
+            <p id="confidence" style="margin:0; font-size: 18px;"></p>
+        </div>
+        
+        <div class="live-section">
+            <button class="reload-btn" onclick="loadLiveMatches()">🔄 Refresh Scores</button>
+            <h2 style="margin-top:0;">🔴 Live Matches hub</h2>
+            <div class="cf"></div>
+            <div id="liveMatches"></div>
+        </div>
+    </div>
+
+    <script>
+        async function loadOptions() {
+            try {
+                const res = await fetch('/api/options');
+                const data = await res.json();
+                
+                const team1 = document.getElementById('team1');
+                const team2 = document.getElementById('team2');
+                const venue = document.getElementById('venue');
+                
+                data.teams.forEach(t => {
+                    team1.add(new Option(t, t));
+                    team2.add(new Option(t, t));
+                });
+                if(data.teams.length > 1) team2.selectedIndex = 1;
+                
+                updateTossOptions();
+                
+                data.venues.forEach(v => {
+                    venue.add(new Option(v, v));
+                });
+            } catch(e) {
+                console.error("Failed to load ML options");
+            }
+        }
+        
+        function updateTossOptions() {
+            const team1 = document.getElementById('team1').value;
+            const team2 = document.getElementById('team2').value;
+            const tossWinner = document.getElementById('toss_winner');
+            
+            // Retain selection if possible
+            const prev = tossWinner.value;
+            tossWinner.innerHTML = '';
+            tossWinner.add(new Option(team1, team1));
+            tossWinner.add(new Option(team2, team2));
+            
+            if (prev === team1 || prev === team2) {
+                tossWinner.value = prev;
+            }
+        }
+        
+        async function loadLiveMatches() {
+            const container = document.getElementById('liveMatches');
+            container.innerHTML = '<i>Fetching real-time cricket scores...</i>';
+            try {
+                const res = await fetch('/api/live');
+                const data = await res.json();
+                container.innerHTML = '';
+                
+                if (data.length === 0) {
+                    container.innerHTML = '<p>No live matches currently taking place.</p>';
+                    return;
+                }
+                
+                data.forEach(match => {
+                    const card = document.createElement('div');
+                    card.className = 'live-card';
+                    card.innerHTML = `<h4>${match.title}</h4><p style="font-size:16px;font-weight:bold;margin:5px 0;">${match.score}</p><small style="color:#555;">${match.status}</small>`;
+                    container.appendChild(card);
+                });
+            } catch(e) {
+                container.innerHTML = '<p style="color:red">Live feed currently unavailable.</p>';
+            }
+        }
+        
+        async function predictMatch() {
+            const btn = document.querySelector('.predict-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Processing Analytics... ⏳';
+            btn.disabled = true;
+            
+            const team1 = document.getElementById('team1').value;
+            const team2 = document.getElementById('team2').value;
+            const tossWinner = document.getElementById('toss_winner').value;
+            
+            if (team1 === team2) {
+                alert("Team 1 and Team 2 must be different teams.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            
+            const payload = {
+                team1: team1,
+                team2: team2,
+                toss_winner: tossWinner,
+                toss_decision: document.getElementById('toss_decision').value,
+                venue: document.getElementById('venue').value
+            };
+            
+            try {
+                const res = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.className = 'result success';
+                document.getElementById('predictedWinner').innerText = `🏆 Predicted Winner: ${data.winner}`;
+                document.getElementById('confidence').innerText = `Model Confidence Framework: ${data.confidence.toFixed(1)}%`;
+                document.getElementById('result').scrollIntoView({behavior: "smooth"});
+                
+            } catch(e) {
+                alert("Error connecting to Vercel ML backend API: " + e.message);
+            }
+            
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+        
+        window.onload = () => {
+            loadOptions();
+            loadLiveMatches();
+        };
+    </script>
+</body>
+</html>
