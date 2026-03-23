@@ -15,11 +15,17 @@ except Exception:
 
 app = FastAPI(title="IPL Stats API")
 
+from fastapi.responses import FileResponse
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "rf_model.pkl")
 COLS_PATH = os.path.join(BASE_DIR, "models", "model_columns.pkl")
 LE_PATH = os.path.join(BASE_DIR, "models", "label_encoder.pkl")
 DATA_PATH = os.path.join(BASE_DIR, "data", "matches.csv")
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse(os.path.join(BASE_DIR, "index.html"))
 
 class PredictionRequest(BaseModel):
     team1: str
