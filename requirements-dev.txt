@@ -1,0 +1,6 @@
+# Development Tools for Data Extraction and Local Server 
+# These are strictly excluded from Vercel's production AWS Lambda to save memory
+pyspark>=3.4.0
+streamlit>=1.24.0
+matplotlib>=3.7.0
+uvicorn>=0.22.0
