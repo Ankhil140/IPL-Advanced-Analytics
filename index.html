@@ -6,150 +6,226 @@
     <title>IPL Stats Analyser & Predictor</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f7f9fc; margin: 0; padding: 0; }
+        
+        /* LOGIN OVERLAY */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center;
+        }
+
+        /* MAIN APP */
         .hero { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 40px 20px; text-align: center; }
-        .container { max-width: 800px; margin: 40px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .nav-tabs { max-width: 800px; margin: 30px auto 0 auto; display: flex; gap: 10px; padding: 0 20px;}
+        .nav-tabs button { flex: 1; padding: 15px; font-size: 16px; font-weight: bold; background: #e0e6ed; color: #333; border: none; border-radius: 8px 8px 0 0; cursor: pointer; transition: 0.3s; }
+        .nav-tabs button.active { background: white; color: #1e3c72; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); }
+        .container { max-width: 800px; margin: 0 auto 40px auto; padding: 30px; background: white; border-radius: 0 0 12px 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadein 0.4s; }
+        @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+        
         h1 { margin-top: 0; }
-        h2 { color: #1e3c72; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+        h2 { color: #1e3c72; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 0; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 20px; }
+        
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
-        select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fff; transition: border 0.3s; }
-        select:focus { border-color: #2a5298; outline: none; }
-        .predict-btn { background-color: #2a5298; color: white; border: none; padding: 16px 30px; font-size: 18px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: background 0.3s; margin-top: 10px;}
-        .predict-btn:hover { background-color: #1e3c72; }
-        .predict-btn:disabled { background-color: #9cb2d6; cursor: not-allowed; }
+        select, input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: #fff; box-sizing: border-box; }
+        input:focus, select:focus { border-color: #2a5298; outline: none; }
+        
+        .btn-primary { background-color: #2a5298; color: white; border: none; padding: 16px 30px; font-size: 18px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: background 0.3s; margin-top: 10px;}
+        .btn-primary:hover { background-color: #1e3c72; }
+        .btn-primary:disabled { background-color: #9cb2d6; cursor: not-allowed; }
+        
         .result { margin-top: 30px; padding: 25px; text-align: center; border-radius: 8px; display: none; }
         .result.success { display: block; background-color: #e8f5e9; color: #1b5e20; border: 2px solid #c8e6c9; }
-        .live-section { margin-top: 50px; padding-top: 20px; }
+        
+        .stat-card { background: #fdfbf7; padding: 20px; text-align: center; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+        .stat-card h3 { color: #1e3c72; margin: 0 0 10px 0; font-size: 28px;}
+        .stat-card p { margin: 0; color: #666; font-size: 14px; text-transform: uppercase; font-weight: 600;}
+        
         .live-card { background: #fff8e1; padding: 18px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #ffb300; transition: transform 0.2s; }
         .live-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .live-card h4 { margin: 0 0 8px 0; color: #d84315; font-size: 18px; }
-        .reload-btn { background-color: #e53935; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; float: right; }
+        .reload-btn { background-color: #e53935; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; float: right; margin-top:-5px;}
         .reload-btn:hover { background-color: #c62828; }
         .cf { clear: both; }
     </style>
 </head>
 <body>
-    <div class="hero">
-        <h1>🏏 IPL Stats Analyser & Predictor</h1>
-        <p>Vercel-native Architecture powered by Machine Learning and Big Data</p>
+
+    <!-- SECURE LOGIN SCREEN -->
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2 style="margin-top:0;">IPL Stats Secure Login</h2>
+            <p style="color:#666; margin-bottom: 25px;">Please authenticate to access the Vercel ML dashboard.</p>
+            <div class="form-group" style="text-align: left;">
+                <label>Username</label>
+                <input type="text" id="loginUsername" placeholder="Enter username">
+            </div>
+            <div class="form-group" style="text-align: left;">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter password" onkeydown="if(event.key === 'Enter') attemptLogin()">
+            </div>
+            <button class="btn-primary" onclick="attemptLogin()">Access Dashboard 🔐</button>
+            <p id="loginError" style="color:red; display:none; margin-top: 15px;">Invalid credentials! Use admin / password123</p>
+        </div>
     </div>
-    
-    <div class="container">
-        <h2>🔮 Match Predictor</h2>
-        <div class="grid-2">
-            <div class="form-group">
-                <label for="team1">Team 1 (Batting First)</label>
-                <select id="team1" onchange="updateTossOptions()"></select>
-            </div>
-            <div class="form-group">
-                <label for="team2">Team 2 (Bowling First)</label>
-                <select id="team2" onchange="updateTossOptions()"></select>
-            </div>
+
+    <!-- MAIN APPLICATION WRAPPER -->
+    <div id="mainAppWrapper" style="display:none;">
+        <div class="hero">
+            <h1>🏏 IPL Stats Analyser</h1>
+            <p>Vercel-native Architecture powered by Machine Learning and Big Data</p>
         </div>
         
-        <div class="grid-2">
-            <div class="form-group">
-                <label for="toss_winner">Toss Winner</label>
-                <select id="toss_winner"></select>
-            </div>
-            <div class="form-group">
-                <label for="toss_decision">Toss Decision</label>
-                <select id="toss_decision">
-                    <option value="bat">Bat</option>
-                    <option value="field">Field</option>
-                </select>
-            </div>
+        <div class="nav-tabs">
+            <button id="tabBtn-predict" class="active" onclick="switchTab('predict')">🔮 Predictor</button>
+            <button id="tabBtn-stats" onclick="switchTab('stats')">📊 Player Stats</button>
+            <button id="tabBtn-live" onclick="switchTab('live')">🔴 Live Hub</button>
         </div>
 
-        <div class="form-group">
-            <label for="venue">Match Venue</label>
-            <select id="venue"></select>
+        <div class="container">
+            <!-- PREDICTOR TAB -->
+            <div id="tab-predict" class="tab-content active">
+                <h2>Match Predictor AI</h2>
+                <div class="grid-2">
+                    <div class="form-group"><label for="team1">Team 1 (Batting First)</label><select id="team1" onchange="updateTossOptions()"></select></div>
+                    <div class="form-group"><label for="team2">Team 2 (Bowling First)</label><select id="team2" onchange="updateTossOptions()"></select></div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group"><label for="toss_winner">Toss Winner</label><select id="toss_winner"></select></div>
+                    <div class="form-group"><label for="toss_decision">Toss Decision</label><select id="toss_decision"><option value="bat">Bat</option><option value="field">Field</option></select></div>
+                </div>
+                <div class="form-group"><label for="venue">Match Venue</label><select id="venue"></select></div>
+                <button class="btn-primary" onclick="predictMatch()">Predict Match Outcome 🎯</button>
+                <div id="result" class="result"><h2 id="predictedWinner" style="margin:0 0 10px 0; color:#1b5e20;"></h2><p id="confidence" style="margin:0; font-size: 18px;"></p></div>
+            </div>
+
+            <!-- PLAYER STATS TAB -->
+            <div id="tab-stats" class="tab-content">
+                <h2>Player Performance Database</h2>
+                <p style="color:#666; margin-bottom: 25px;">Select any historic IPL player to fetch their lifetime performance metrics from across the entire ball-by-ball Vercel AWS datastore.</p>
+                <div class="form-group">
+                    <label>Select Player Search</label>
+                    <select id="playerDropdown" onchange="renderPlayerStats()"><option value="">-- Choose a Player --</option></select>
+                </div>
+                <div id="playerStatsBlock" style="display:none; margin-top: 30px;">
+                    <h3 id="playerNameDisplay" style="text-align: center; color:#d84315; font-size:26px; border-bottom: 2px dashed #eee; padding-bottom: 10px; margin-bottom: 20px;"></h3>
+                    <div class="grid-4">
+                        <div class="stat-card"><h3 id="stat-runs">0</h3><p>Runs</p></div>
+                        <div class="stat-card"><h3 id="stat-sr">0</h3><p>Strike Rate</p></div>
+                        <div class="stat-card"><h3 id="stat-wickets">0</h3><p>Wickets</p></div>
+                        <div class="stat-card"><h3 id="stat-econ">0</h3><p>Economy</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LIVE MATCHES TAB -->
+            <div id="tab-live" class="tab-content">
+                <button class="reload-btn" onclick="loadLiveMatches()">🔄 Refresh feed</button>
+                <h2 style="margin-top:0;">🔴 Raw Live Scores</h2>
+                <div class="cf" style="margin-bottom:20px;"></div>
+                <div id="liveMatches"></div>
+            </div>
         </div>
-        
-        <button class="predict-btn" onclick="predictMatch()">Predict Match Outcome 🎯</button>
-        
-        <div id="result" class="result">
-            <h2 id="predictedWinner" style="margin:0 0 10px 0; color:#1b5e20;"></h2>
-            <p id="confidence" style="margin:0; font-size: 18px;"></p>
-        </div>
-        
-        <div class="live-section">
-            <button class="reload-btn" onclick="loadLiveMatches()">🔄 Refresh Scores</button>
-            <h2 style="margin-top:0;">🔴 Live Matches hub</h2>
-            <div class="cf"></div>
-            <div id="liveMatches"></div>
-        </div>
-    </div>
+    </div> <!-- END MAIN APP -->
 
     <script>
-        async function loadOptions() {
+        const API_BASE = window.location.protocol === 'file:' ? 'http://127.0.0.1:8002' : '';
+        let allPlayerData = {};
+
+        // Authentication logic
+        function attemptLogin() {
+            const user = document.getElementById('loginUsername').value;
+            const pass = document.getElementById('loginPassword').value;
+            if (user === 'admin' && pass === 'password123') {
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('mainAppWrapper').style.display = 'block';
+                init(); // Lazily fetch sensitive ML info only after authentication
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        // Navigation Controller
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('tabBtn-' + tabId).classList.add('active');
+        }
+
+        async function init() {
             try {
-                const res = await fetch('/api/options');
+                const res = await fetch(API_BASE + '/api/options');
                 const data = await res.json();
-                
                 const team1 = document.getElementById('team1');
                 const team2 = document.getElementById('team2');
                 const venue = document.getElementById('venue');
-                
-                data.teams.forEach(t => {
-                    team1.add(new Option(t, t));
-                    team2.add(new Option(t, t));
-                });
+                data.teams.forEach(t => { team1.add(new Option(t, t)); team2.add(new Option(t, t)); });
                 if(data.teams.length > 1) team2.selectedIndex = 1;
-                
                 updateTossOptions();
-                
-                data.venues.forEach(v => {
-                    venue.add(new Option(v, v));
-                });
-            } catch(e) {
-                console.error("Failed to load ML options");
-            }
+                data.venues.forEach(v => venue.add(new Option(v, v)));
+            } catch(e) { console.error("Failed to load ML options"); }
+
+            try {
+                const pRes = await fetch(API_BASE + '/api/players');
+                allPlayerData = await pRes.json();
+                const pDropdown = document.getElementById('playerDropdown');
+                Object.keys(allPlayerData).sort().forEach(player => pDropdown.add(new Option(player, player)));
+            } catch(e) { console.error("Failed to load player stat block"); }
+
+            loadLiveMatches();
         }
         
+        function renderPlayerStats() {
+            const name = document.getElementById('playerDropdown').value;
+            const block = document.getElementById('playerStatsBlock');
+            if(!name || !allPlayerData[name]) { block.style.display = 'none'; return; }
+            
+            const stats = allPlayerData[name];
+            document.getElementById('playerNameDisplay').innerText = name;
+            document.getElementById('stat-runs').innerText = stats.runs;
+            document.getElementById('stat-sr').innerText = stats.sr.toFixed(2);
+            document.getElementById('stat-wickets').innerText = stats.wickets;
+            document.getElementById('stat-econ').innerText = stats.econ.toFixed(2);
+            block.style.display = 'block';
+        }
+
         function updateTossOptions() {
             const team1 = document.getElementById('team1').value;
             const team2 = document.getElementById('team2').value;
             const tossWinner = document.getElementById('toss_winner');
-            
-            // Retain selection if possible
             const prev = tossWinner.value;
             tossWinner.innerHTML = '';
             tossWinner.add(new Option(team1, team1));
             tossWinner.add(new Option(team2, team2));
-            
-            if (prev === team1 || prev === team2) {
-                tossWinner.value = prev;
-            }
+            if (prev === team1 || prev === team2) tossWinner.value = prev;
         }
         
         async function loadLiveMatches() {
             const container = document.getElementById('liveMatches');
-            container.innerHTML = '<i>Fetching real-time cricket scores...</i>';
+            container.innerHTML = '<i>Fetching real-time global cricket feeds...</i>';
             try {
-                const res = await fetch('/api/live');
+                const res = await fetch(API_BASE + '/api/live');
                 const data = await res.json();
                 container.innerHTML = '';
-                
-                if (data.length === 0) {
-                    container.innerHTML = '<p>No live matches currently taking place.</p>';
-                    return;
-                }
-                
+                if (data.length === 0) { container.innerHTML = '<p>No live matches currently taking place.</p>'; return; }
                 data.forEach(match => {
-                    const card = document.createElement('div');
-                    card.className = 'live-card';
-                    card.innerHTML = `<h4>${match.title}</h4><p style="font-size:16px;font-weight:bold;margin:5px 0;">${match.score}</p><small style="color:#555;">${match.status}</small>`;
-                    container.appendChild(card);
+                    container.innerHTML += `<div class="live-card"><h4>${match.title}</h4><p style="font-size:16px;font-weight:bold;margin:5px 0;">${match.score}</p><small style="color:#555;">${match.status}</small></div>`;
                 });
-            } catch(e) {
-                container.innerHTML = '<p style="color:red">Live feed currently unavailable.</p>';
-            }
+            } catch(e) { container.innerHTML = '<p style="color:red">Live feed currently unavailable.</p>'; }
         }
         
         async function predictMatch() {
-            const btn = document.querySelector('.predict-btn');
+            const btn = document.querySelector('.btn-primary');
             const originalText = btn.innerHTML;
             btn.innerHTML = 'Processing Analytics... ⏳';
             btn.disabled = true;
@@ -157,48 +233,22 @@
             const team1 = document.getElementById('team1').value;
             const team2 = document.getElementById('team2').value;
             const tossWinner = document.getElementById('toss_winner').value;
+            if (team1 === team2) { alert("Team 1 and Team 2 must be different teams."); btn.innerHTML = originalText; btn.disabled = false; return; }
             
-            if (team1 === team2) {
-                alert("Team 1 and Team 2 must be different teams.");
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                return;
-            }
-            
-            const payload = {
-                team1: team1,
-                team2: team2,
-                toss_winner: tossWinner,
-                toss_decision: document.getElementById('toss_decision').value,
-                venue: document.getElementById('venue').value
-            };
+            const payload = { team1: team1, team2: team2, toss_winner: tossWinner, toss_decision: document.getElementById('toss_decision').value, venue: document.getElementById('venue').value };
             
             try {
-                const res = await fetch('/api/predict', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
+                const res = await fetch(API_BASE + '/api/predict', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
                 const data = await res.json();
-                
                 const resultDiv = document.getElementById('result');
                 resultDiv.className = 'result success';
                 document.getElementById('predictedWinner').innerText = `🏆 Predicted Winner: ${data.winner}`;
-                document.getElementById('confidence').innerText = `Model Confidence Framework: ${data.confidence.toFixed(1)}%`;
+                document.getElementById('confidence').innerText = `Model Confidence Metrics: ${data.confidence.toFixed(1)}%`;
                 document.getElementById('result').scrollIntoView({behavior: "smooth"});
-                
-            } catch(e) {
-                alert("Error connecting to Vercel ML backend API: " + e.message);
-            }
-            
+            } catch(e) { alert("Error connecting to Vercel ML backend API: " + e.message); }
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
-        
-        window.onload = () => {
-            loadOptions();
-            loadLiveMatches();
-        };
     </script>
 </body>
 </html>
