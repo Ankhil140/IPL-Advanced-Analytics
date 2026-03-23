@@ -24,8 +24,13 @@ LE_PATH = os.path.join(BASE_DIR, "models", "label_encoder.pkl")
 DATA_PATH = os.path.join(BASE_DIR, "data", "matches.csv")
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/")
 def serve_frontend():
-    return FileResponse(os.path.join(BASE_DIR, "index.html"))
+    try:
+        return FileResponse(os.path.join(BASE_DIR, "index.html"))
+    except Exception:
+        return {"status": "OK", "message": "IPL Stats API is running gracefully."}
 
 class PredictionRequest(BaseModel):
     team1: str
@@ -35,6 +40,7 @@ class PredictionRequest(BaseModel):
     venue: str
 
 @app.get("/api/options")
+@app.get("/options")
 def get_options():
     try:
         df = pd.read_csv(DATA_PATH)
@@ -45,10 +51,12 @@ def get_options():
         return {"teams": ["Chennai Super Kings", "Mumbai Indians", "Royal Challengers Bangalore"], "venues": ["Wankhede Stadium", "Eden Gardens"]}
 
 @app.get("/api/live")
+@app.get("/live")
 def get_live():
     return get_live_matches()
 
 @app.post("/api/predict")
+@app.post("/predict")
 def predict(request: PredictionRequest):
     if not os.path.exists(MODEL_PATH):
         return {"error": "Predictive model not trained yet", "winner": "Model Missing", "confidence": 0.0}
