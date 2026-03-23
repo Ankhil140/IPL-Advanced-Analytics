@@ -1,0 +1,5 @@
+# Ignore heavy raw datasets that are pre-compiled locally
+data/deliveries.csv
+
+# Ignore deprecated architecture files
+app.py

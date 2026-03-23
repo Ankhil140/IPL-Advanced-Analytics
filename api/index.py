@@ -22,6 +22,7 @@ MODEL_PATH = os.path.join(BASE_DIR, "models", "rf_model.pkl")
 COLS_PATH = os.path.join(BASE_DIR, "models", "model_columns.pkl")
 LE_PATH = os.path.join(BASE_DIR, "models", "label_encoder.pkl")
 DATA_PATH = os.path.join(BASE_DIR, "data", "matches.csv")
+STATS_PATH = os.path.join(BASE_DIR, "data", "player_stats.json")
 
 @app.get("/")
 @app.get("/api")
@@ -31,6 +32,18 @@ def serve_frontend():
         return FileResponse(os.path.join(BASE_DIR, "index.html"))
     except Exception:
         return {"status": "OK", "message": "IPL Stats API is running gracefully."}
+
+@app.get("/api/players")
+@app.get("/players")
+def get_players():
+    try:
+        if os.path.exists(STATS_PATH):
+            with open(STATS_PATH, 'r') as f:
+                import json
+                return json.load(f)
+        return {"error": "Stats cache missing"}
+    except Exception:
+        return {}
 
 class PredictionRequest(BaseModel):
     team1: str
