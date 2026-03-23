@@ -67,11 +67,11 @@
             <p style="color:#666; margin-bottom: 25px;">Please authenticate to access the Vercel ML dashboard.</p>
             <div class="form-group" style="text-align: left;">
                 <label>Username</label>
-                <input type="text" id="loginUsername" placeholder="Enter username">
+                <input type="text" id="loginUsername" placeholder="Enter username (admin)">
             </div>
             <div class="form-group" style="text-align: left;">
                 <label>Password</label>
-                <input type="password" id="loginPassword" placeholder="Enter password" onkeydown="if(event.key === 'Enter') attemptLogin()">
+                <input type="password" id="loginPassword" placeholder="Enter password (password123)" onkeydown="if(event.key === 'Enter') attemptLogin()">
             </div>
             <button class="btn-primary" onclick="attemptLogin()">Access Dashboard 🔐</button>
             <p id="loginError" style="color:red; display:none; margin-top: 15px;">Invalid credentials! Use admin / password123</p>
@@ -87,7 +87,7 @@
         
         <div class="nav-tabs">
             <button id="tabBtn-predict" class="active" onclick="switchTab('predict')">🔮 Predictor</button>
-            <button id="tabBtn-stats" onclick="switchTab('stats')">📊 Player Stats</button>
+            <button id="tabBtn-stats" onclick="switchTab('stats')">📊 Player Matrix</button>
             <button id="tabBtn-live" onclick="switchTab('live')">🔴 Live Hub</button>
         </div>
 
@@ -108,21 +108,44 @@
                 <div id="result" class="result"><h2 id="predictedWinner" style="margin:0 0 10px 0; color:#1b5e20;"></h2><p id="confidence" style="margin:0; font-size: 18px;"></p></div>
             </div>
 
-            <!-- PLAYER STATS TAB -->
+            <!-- PLAYER STATS TAB (COMPARISON) -->
             <div id="tab-stats" class="tab-content">
-                <h2>Player Performance Database</h2>
-                <p style="color:#666; margin-bottom: 25px;">Select any historic IPL player to fetch their lifetime performance metrics from across the entire ball-by-ball Vercel AWS datastore.</p>
-                <div class="form-group">
-                    <label>Select Player Search</label>
-                    <select id="playerDropdown" onchange="renderPlayerStats()"><option value="">-- Choose a Player --</option></select>
+                <h2>Player Comparison Matrix</h2>
+                <p style="color:#666; margin-bottom: 25px;">Select any two historic IPL players to dynamically compare their lifetime metrics efficiently rendered from the micro JSON caching layer.</p>
+                
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>🏏 Player 1</label>
+                        <select id="player1Dropdown" onchange="renderComparison()"><option value="">-- Choose Player 1 --</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>🏏 Player 2</label>
+                        <select id="player2Dropdown" onchange="renderComparison()"><option value="">-- Choose Player 2 --</option></select>
+                    </div>
                 </div>
-                <div id="playerStatsBlock" style="display:none; margin-top: 30px;">
-                    <h3 id="playerNameDisplay" style="text-align: center; color:#d84315; font-size:26px; border-bottom: 2px dashed #eee; padding-bottom: 10px; margin-bottom: 20px;"></h3>
-                    <div class="grid-4">
-                        <div class="stat-card"><h3 id="stat-runs">0</h3><p>Runs</p></div>
-                        <div class="stat-card"><h3 id="stat-sr">0</h3><p>Strike Rate</p></div>
-                        <div class="stat-card"><h3 id="stat-wickets">0</h3><p>Wickets</p></div>
-                        <div class="stat-card"><h3 id="stat-econ">0</h3><p>Economy</p></div>
+
+                <div id="comparisonBlock" style="display:none; margin-top: 20px;">
+                    <div class="grid-2">
+                        <!-- Player 1 Stats -->
+                        <div class="stat-card" style="padding: 15px; border-top: 4px solid #d84315;">
+                            <h3 id="p1NameDisplay" style="color:#d84315; font-size:22px; margin-bottom: 15px;"></h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="stat-card" style="padding:10px;"><h3 id="p1-runs" style="font-size:20px;">0</h3><p style="font-size:11px;">Runs</p></div>
+                                <div class="stat-card" style="padding:10px;"><h3 id="p1-sr" style="font-size:20px;">0</h3><p style="font-size:11px;">SR</p></div>
+                                <div class="stat-card" style="padding:10px;"><h3 id="p1-wickets" style="font-size:20px;">0</h3><p style="font-size:11px;">Wickets</p></div>
+                                <div class="stat-card" style="padding:10px;"><h3 id="p1-econ" style="font-size:20px;">0</h3><p style="font-size:11px;">Econ</p></div>
+                            </div>
+                        </div>
+                        <!-- Player 2 Stats -->
+                        <div class="stat-card" style="padding: 15px; border-top: 4px solid #1e3c72;">
+                            <h3 id="p2NameDisplay" style="color:#1e3c72; font-size:22px; margin-bottom: 15px;"></h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="stat-card" style="padding:10px;"><h3 id="p2-runs" style="font-size:20px;">0</h3><p style="font-size:11px;">Runs</p></div>
+                                <div class="stat-card" style="padding:10px;"><h3 id="p2-sr" style="font-size:20px;">0</h3><p style="font-size:11px;">SR</p></div>
+                                <div class="stat-card" style="padding:10px;"><h3 id="p2-wickets" style="font-size:20px;">0</h3><p style="font-size:11px;">Wickets</p></div>
+                                <div class="stat-card" style="padding:10px;"><h3 id="p2-econ" style="font-size:20px;">0</h3><p style="font-size:11px;">Econ</p></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -178,24 +201,65 @@
             try {
                 const pRes = await fetch(API_BASE + '/api/players');
                 allPlayerData = await pRes.json();
-                const pDropdown = document.getElementById('playerDropdown');
-                Object.keys(allPlayerData).sort().forEach(player => pDropdown.add(new Option(player, player)));
+                const p1Drop = document.getElementById('player1Dropdown');
+                const p2Drop = document.getElementById('player2Dropdown');
+                Object.keys(allPlayerData).sort().forEach(player => {
+                    p1Drop.add(new Option(player, player));
+                    p2Drop.add(new Option(player, player));
+                });
             } catch(e) { console.error("Failed to load player stat block"); }
 
             loadLiveMatches();
         }
         
-        function renderPlayerStats() {
-            const name = document.getElementById('playerDropdown').value;
-            const block = document.getElementById('playerStatsBlock');
-            if(!name || !allPlayerData[name]) { block.style.display = 'none'; return; }
+        function renderComparison() {
+            const p1 = document.getElementById('player1Dropdown').value;
+            const p2 = document.getElementById('player2Dropdown').value;
+            const block = document.getElementById('comparisonBlock');
             
-            const stats = allPlayerData[name];
-            document.getElementById('playerNameDisplay').innerText = name;
-            document.getElementById('stat-runs').innerText = stats.runs;
-            document.getElementById('stat-sr').innerText = stats.sr.toFixed(2);
-            document.getElementById('stat-wickets').innerText = stats.wickets;
-            document.getElementById('stat-econ').innerText = stats.econ.toFixed(2);
+            if(!p1 || !p2 || !allPlayerData[p1] || !allPlayerData[p2]) { 
+                block.style.display = 'none'; 
+                return; 
+            }
+            
+            const s1 = allPlayerData[p1];
+            const s2 = allPlayerData[p2];
+            
+            document.getElementById('p1NameDisplay').innerText = p1;
+            document.getElementById('p2NameDisplay').innerText = p2;
+            
+            // Evaluator Helper: Returns the winning hex color (#2e7d32 green, #c62828 red, #1e3c72 default tie)
+            function evalMetric(val1, val2, invert=false) {
+                if(val1 === val2) return ['#1e3c72', '#1e3c72'];
+                if(invert) return val1 < val2 ? ['#2e7d32', '#c62828'] : ['#c62828', '#2e7d32'];
+                return val1 > val2 ? ['#2e7d32', '#c62828'] : ['#c62828', '#2e7d32'];
+            }
+            
+            // Runs (Higher is better)
+            const r1 = document.getElementById('p1-runs'); const r2 = document.getElementById('p2-runs');
+            r1.innerText = s1.runs; r2.innerText = s2.runs;
+            [r1.style.color, r2.style.color] = evalMetric(s1.runs, s2.runs);
+            
+            // Strike Rate (Higher is better)
+            const sr1 = document.getElementById('p1-sr'); const sr2 = document.getElementById('p2-sr');
+            sr1.innerText = s1.sr.toFixed(2); sr2.innerText = s2.sr.toFixed(2);
+            [sr1.style.color, sr2.style.color] = evalMetric(s1.sr, s2.sr);
+            
+            // Wickets (Higher is better)
+            const w1 = document.getElementById('p1-wickets'); const w2 = document.getElementById('p2-wickets');
+            w1.innerText = s1.wickets; w2.innerText = s2.wickets;
+            [w1.style.color, w2.style.color] = evalMetric(s1.wickets, s2.wickets);
+            
+            // Economy (Lower is Better, but 0 means didn't bowl)
+            const e1 = document.getElementById('p1-econ'); const e2 = document.getElementById('p2-econ');
+            e1.innerText = s1.econ.toFixed(2); e2.innerText = s2.econ.toFixed(2);
+            
+            if (s1.econ > 0 && s2.econ > 0) {
+                [e1.style.color, e2.style.color] = evalMetric(s1.econ, s2.econ, true);
+            } else if (s1.econ > 0) { e1.style.color = '#2e7d32'; e2.style.color = '#c62828'; }
+            else if (s2.econ > 0) { e2.style.color = '#2e7d32'; e1.style.color = '#c62828'; }
+            else { e1.style.color = '#1e3c72'; e2.style.color = '#1e3c72'; }
+            
             block.style.display = 'block';
         }
 
